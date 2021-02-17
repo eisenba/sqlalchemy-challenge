@@ -128,24 +128,30 @@ def tobs():
 @app.route("/api/v1.0/<start>")
 @app.route("/api/v1.0/<start>/<end>")
 def StartEnd(start,end=0):
-   # Create our session (link) from Python to the DB
+
+    # Create our session (link) from Python to the DB
     session = Session(engine)
     # Query station table
-    station_query =  session.query(Station.station, Station.name, Station.latitude, Station.longitude).\
-    order_by(Station.station).all()
+    # Without end date
+    if end == 0:
+        temp_query = session.query(func.min(measurement.tobs),func.max(measurement.tobs), func.avg(measurement.tobs)).\
+        filter(measurement.date > start).all()
+    # With end date
+    else:
+        temp_query = session.query(func.min(measurement.tobs),func.max(measurement.tobs), func.avg(measurement.tobs)).\
+        filter(measurement.date > start, measurement.date < end).all()
 
     session.close()
     # Build response
-    stationarraymap = []
+    temparraymap = []
 
-    for station, name, latitude, longitude in station_query:
-        stationdictmap = {}
-        stationdictmap["Station"] = station
-        stationdictmap["Name"] = name
-        stationdictmap["Lat"] = latitude
-        stationdictmap["Long"] = longitude
-        stationarraymap.append(stationdictmap)
-    return jsonify(stationarraymap)  
+    for tmin, tmax, tavg in temp_query:
+        tempdictmap = {}
+        tempdictmap["TMIN"] = tmin
+        tempdictmap["TMAX"] = tmax
+        tempdictmap["TAVG"] = tavg
+        temparraymap.append(tempdictmap)
+    return jsonify(temparraymap)  
 
 
 
