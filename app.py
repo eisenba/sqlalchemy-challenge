@@ -89,13 +89,66 @@ def stations():
         stationarraymap.append(stationdictmap)
     return jsonify(stationarraymap) 
 
+@app.route("/api/v1.0/tobs")
+def tobs():
+# Create our session (link) from Python to the DB
+    session = Session(engine)
+    # find most active station
+    max_active_station = session.query(measurement.station).\
+    group_by(measurement.station).order_by(func.count(measurement.station).desc()).first()
+    # find date range for last 12 months for most active station
+    lastest_date2 = session.query(measurement.date).\
+    filter(measurement.station == max_active_station[0]).order_by(measurement.date.desc()).first()
+    lastest_year2 = int(lastest_date2[0][:4])
+    lastest_month2 = int(lastest_date2[0][5:7])
+    lastest_day2 = int(lastest_date2[0][-2:])
+    lastest_date2
+
+    # Calculate the date 1 year ago from the last data point for most active station in the database
+    oldest_date2 = dt.date(lastest_year2, lastest_month2, lastest_day2) - dt.timedelta(days=365)
+    oldest_date2
+
+    # Perform a query to retrieve the data and temp scores
+    tobs_query = session.query(measurement.date, measurement.tobs).\
+    filter(measurement.date > oldest_date2).\
+    filter(measurement.station == max_active_station[0]).\
+    order_by(measurement.date).all()
+    session.close()
+
+    # Build response
+    tobsarraymap = []
+
+    for date,tobs in tobs_query:
+        tobsdictmap = {}
+        tobsdictmap["date"] = date
+        tobsdictmap["temp"] = tobs
+        tobsarraymap.append(tobsdictmap)
+    return jsonify(tobsarraymap)
+
+@app.route("/api/v1.0/<start>")
+@app.route("/api/v1.0/<start>/<end>")
+def StartEnd(start,end=0):
+   # Create our session (link) from Python to the DB
+    session = Session(engine)
+    # Query station table
+    station_query =  session.query(Station.station, Station.name, Station.latitude, Station.longitude).\
+    order_by(Station.station).all()
+
+    session.close()
+    # Build response
+    stationarraymap = []
+
+    for station, name, latitude, longitude in station_query:
+        stationdictmap = {}
+        stationdictmap["Station"] = station
+        stationdictmap["Name"] = name
+        stationdictmap["Lat"] = latitude
+        stationdictmap["Long"] = longitude
+        stationarraymap.append(stationdictmap)
+    return jsonify(stationarraymap)  
 
 
 
 
-
-
-
-    
 if __name__ == "__main__":
     app.run(debug=True)
