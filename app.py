@@ -20,7 +20,7 @@ base.prepare(engine, reflect=True)
 print(base.classes.keys())
 # Save references to each table
 measurement = base.classes.measurement
-station = base.classes.station
+Station = base.classes.station
 # Create an app
 app = Flask(__name__)
 # app = Flask(__name__, template_folder='templates')
@@ -69,7 +69,33 @@ def precipitation():
     return jsonify(preciparraymap)
 
 @app.route("/api/v1.0/stations")
-def station():
+def stations():
+# Create our session (link) from Python to the DB
+    session = Session(engine)
+    # Query station table
+    station_query =  session.query(Station.station, Station.name, Station.latitude, Station.longitude).\
+    order_by(Station.station).all()
 
+    session.close()
+    # Build response
+    stationarraymap = []
+
+    for station, name, latitude, longitude in station_query:
+        stationdictmap = {}
+        stationdictmap["Station"] = station
+        stationdictmap["Name"] = name
+        stationdictmap["Lat"] = latitude
+        stationdictmap["Long"] = longitude
+        stationarraymap.append(stationdictmap)
+    return jsonify(stationarraymap) 
+
+
+
+
+
+
+
+
+    
 if __name__ == "__main__":
     app.run(debug=True)
